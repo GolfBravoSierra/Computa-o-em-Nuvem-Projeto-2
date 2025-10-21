@@ -53,13 +53,18 @@ EOF
 sudo a2dissite 000-default.conf
 sudo a2ensite 001-django-app.conf
 sudo systemctl restart apache2
- 
+
+# COLOCAR NO README.md
 
 # sudo mkdir -p /vagrant/django_app
 # sudo chown -R vagrant:vagrant /vagrant/django_app
 # cd /vagrant/django_app
 # django-admin startproject executor_project .
 # mv /vagrant/settings.py /vagrant/django_app/executor_project/
+# python3 manage.py migrate
+
+# python3 manage.py startapp core
+# python3 manage.py makemigrations core
 # python3 manage.py migrate
 
 echo ">>> termino da configuracao da VM"

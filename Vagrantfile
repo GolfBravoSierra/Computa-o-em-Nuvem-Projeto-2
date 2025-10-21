@@ -23,6 +23,7 @@ Vagrant.configure("2") do |config|
 
   # Configura os recursos da máquina virtual
   config.vm.provider "virtualbox" do |vb|
+    vb.gui = true
     vb.memory = "4096"
     vb.cpus = 2
   end
