@@ -66,6 +66,13 @@
     <p>Selecione um arquivo .c para submeter.</p>
     <button id="upload-button">Selecionar Arquivo</button>
     <input type="file" id="file-input" accept=".c">
+    <div style="margin-top:20px; text-align:left;">
+        <label for="cpu-input">CPUs (0.5 - 2):</label>
+        <input id="cpu-input" type="number" step="0.1" min="0.5" max="2" value="1">
+        <br>
+        <label for="mem-input">Memória (MB) (10 - 4000):</label>
+        <input id="mem-input" type="number" step="1" min="10" max="4000" value="256">
+    </div>
     <div id="notification"></div>
     <button id="execute-button">Executar Programa</button>
 </div>
@@ -94,6 +101,21 @@
         if (selectedFile) {
             const formData = new FormData();
             formData.append('cfile', selectedFile);
+            const cpu = parseFloat(document.getElementById('cpu-input').value);
+            const mem = parseInt(document.getElementById('mem-input').value, 10);
+
+            // validação simples no front-end
+            if (isNaN(cpu) || cpu < 0.5 || cpu > 2) {
+                notification.textContent = 'Valor de CPU inválido. Informe entre 0.5 e 2.';
+                return;
+            }
+            if (isNaN(mem) || mem < 10 || mem > 4000) {
+                notification.textContent = 'Valor de memória inválido. Informe entre 10 e 4000 MB.';
+                return;
+            }
+
+            formData.append('cpu', cpu);
+            formData.append('mem', mem);
 
             notification.textContent = 'Enviando arquivo...';
 
