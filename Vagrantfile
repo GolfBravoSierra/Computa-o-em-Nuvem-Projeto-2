@@ -23,7 +23,7 @@ Vagrant.configure("2") do |config|
   config.vm.hostname = "web"
 
   # Redireciona a porta 8000 da VM para a porta 8080 da sua máquina
-  config.vm.network "forwarded_port", guest: 8000, host: 8081
+  config.vm.network "forwarded_port", guest: 80, host: 8081
 
   # Configura os recursos da máquina virtual
   config.vm.provider "virtualbox" do |vb|

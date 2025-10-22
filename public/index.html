@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerenciador de Ambientes</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        .container { max-width: 800px; margin: auto; }
+        textarea { width: 100%; min-height: 150px; font-family: monospace; }
+        button { padding: 10px 15px; cursor: pointer; }
+        #output { background-color: #f4f4f4; border: 1px solid #ccc; padding: 10px; white-space: pre-wrap; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Executar um Comando no Servidor</h1>
+        <p>
+            Digite um comando para ser executado dentro de um novo namespace. <br>
+            Exemplo: <code>ls -l /</code> ou <code>ps aux</code>
+        </p>
+
+        <form id="commandForm">
+            <textarea id="command" name="command" placeholder="Digite seu comando aqui..."></textarea>
+            <br><br>
+            <button type="submit">Executar</button>
+        </form>
+
+        <h2>Saída:</h2>
+        <pre id="output">A saída do comando aparecerá aqui...</pre>
+    </div>
+
+    <script>
+        document.getElementById('commandForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const command = document.getElementById('command').value;
+            const outputElement = document.getElementById('output');
+            
+            outputElement.textContent = 'Executando...';
+
+            // --- ALTERE A LINHA ABAIXO ---
+            // O caminho agora é absoluto a partir da raiz do site
+            fetch('/api.php', {
+            // -----------------------------
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'command=' + encodeURIComponent(command)
+            })
+            .then(response => response.text())
+            .then(data => {
+                outputElement.textContent = data;
+            })
+            .catch(error => {
+                outputElement.textContent = 'Erro ao executar o comando: ' + error;
+            });
+        });
+    </script>
+
+</body>
+</html>

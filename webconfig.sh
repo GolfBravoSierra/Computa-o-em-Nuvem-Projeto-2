@@ -10,14 +10,30 @@ sudo mysql -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$
 sudo mysql -e "GRANT ALL PRIVILEGES ON $DB_NOME.* TO '$DB_USER'@'localhost';"
 sudo mysql -e "FLUSH PRIVILEGES;"
 
-echo ">>> Instalando Apache"
-apt-get install apache2 -y
+echo ">>> Instalando Apache e PHP"
+apt-get install apache2 php libapache2-mod-php -y
 
-echo ">>> Instalando PHP e o modulo do Apache para PHP"
-apt-get install php libapache2-mod-php -y
+echo ">>> Configurando o Apache para usar a pasta 'public'"
+sudo sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
 
-echo ">>> configurando HTML"
+# --- ADICIONE ESTA NOVA SEÇÃO ---
+echo ">>> Configurando Alias para a API"
+# Cria um novo arquivo de configuração para nossa API
+sudo tee /etc/apache2/conf-available/api.conf > /dev/null <<'EOF'
+Alias /api.php /var/www/html/src/api.php
+<Directory /var/www/html/src/>
+    Require all granted
+</Directory>
+EOF
+# Habilita a nossa nova configuração
+sudo a2enconf api
+# ---------------------------------
+
+# Reinicia o Apache para aplicar TODAS as configurações (DocumentRoot e Alias)
+sudo systemctl restart apache2
+
+echo ">>> Limpando pasta padrao e copiando arquivos do projeto"
 sudo cp -r /vagrant/* /var/www/html/
 
-echo ">>> termino da configuracao da VM"
+echo ">>> Termino da configuracao da VM"
 echo ">>> Acesse a aplicacao em http://localhost:8081"
