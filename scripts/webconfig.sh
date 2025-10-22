@@ -3,6 +3,7 @@ echo "--> Iniciando configuracao da VM"
 echo ">>> Atualizando os pacotes do sistema..."
 sudo apt-get update
 sudo apt-get upgrade -y
+sudo apt-get install -y cgroup-tools
 
 # --- 2. Instalar Software Essencial ---
 echo ">>> Instalando software base (python, pip, build tools)..."
@@ -66,6 +67,7 @@ sudo systemctl restart apache2
 # python3 manage.py startapp core
 # python3 manage.py makemigrations core
 # python3 manage.py migrate
+# python3 manage.py createsuperuser
 
 echo ">>> termino da configuracao da VM"
 echo ">>> Acesse a aplicacao em http://localhost:8081"
