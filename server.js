@@ -1,12 +1,14 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const os = require('os');
 const { execFile } = require('child_process');
 const fs = require('fs');
 const mysql = require('mysql2/promise');
 
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
+// Use a temp directory outside the /vagrant shared folder to avoid VirtualBox vboxsf ETXTBSY errors
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(os.tmpdir(), 'c_runner_uploads');
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const app = express();
 const upload = multer({ dest: UPLOAD_DIR });
@@ -42,13 +44,16 @@ app.post('/upload', upload.single('cfile'), async (req, res) => {
 
     // call the script that will compile and run inside namespace
     // script will print EXECUTION_TIME:<secs> on stdout
-    const scriptPath = path.join(__dirname, 'scripts', 'run_in_namespace.sh');
-    const args = [savedPath, cpu.toString(), mem.toString(), DEFAULT_TIMEOUT_SECS.toString()];
+  const scriptPath = path.join(__dirname, 'scripts', 'run_in_namespace.sh');
+  // determine timeout (use env or default)
+  const timeoutSecs = parseInt(process.env.DEFAULT_TIMEOUT_SECS || '10', 10);
+  const args = [savedPath, cpu.toString(), mem.toString(), timeoutSecs.toString()];
 
-    const start = Date.now();
-    // set execFile timeout slightly above the internal timeout (ms)
-    const execTimeoutMs = (DEFAULT_TIMEOUT_SECS + 5) * 1000;
-    execFile(scriptPath, args, { maxBuffer: 10 * 1024 * 1024, timeout: execTimeoutMs }, async (err, stdout, stderr) => {
+  const start = Date.now();
+  // set execFile timeout slightly above the internal timeout (ms)
+  const execTimeoutMs = (timeoutSecs + 5) * 1000;
+  // run the script via sudo so the script can perform privileged operations (namespaces, cgroups)
+  execFile('sudo', [scriptPath, ...args], { maxBuffer: 10 * 1024 * 1024, timeout: execTimeoutMs }, async (err, stdout, stderr) => {
       const duration = (Date.now() - start) / 1000; // fallback duration
       if (err) {
         console.error('exec error', err);
