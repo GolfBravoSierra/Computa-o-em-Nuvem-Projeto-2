@@ -11,6 +11,45 @@ Este projeto permite ao usuário:
 
 ## 🚀 Como usar
 
-1. Inicie a VM:
-   ```bash
-   vagrant up
+```
+vagrant up
+```
+
+```
+vagrant ssh
+```
+
+```
+cd /vagrant
+```
+
+```
+python3 app.py
+```
+
+## Para checar os códigos armazaenados
+
+#### Dentro da VM, executar:
+
+```
+sudo mysql -u flaskuser -p
+```
+
+#### No mysql:
+
+```
+USE execucoes;
+```
+```
+SELECT id, nome_programa, tempo_execucao, mem_limit_mb, cpu_limit_s, LENGTH(codigo_c) AS cod_len FROM resultados;
+```
+
+Você verá algo como:
+```
++----+---------------+----------------+----------+-----+-----------+
+| id | nome_programa | tempo_execucao |  memoria | cpu |  tamanho  |
++----+---------------+----------------+----------+-----+-----------+
+|  1 | teste.c       | 0.0023         |   124    |  5  |    39     |
+|  2 | exemplo.c     | 0.0031         |   210    |  5  |    40     |
++----+---------------+----------------+----------+-----+-----------+
+```
