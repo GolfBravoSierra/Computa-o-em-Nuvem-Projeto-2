@@ -37,8 +37,8 @@ mkdir -p "$CPU_CGROUP" "$MEM_CGROUP"
 # Convert CPUS (like 0.5) to cpu.cfs_quota_us relative to 100000 period
 PERIOD=100000
 QUOTA=$(awk -v c="$CPUS" -v p="$PERIOD" 'BEGIN{printf "%d", c * p}')
-echo $QUOTA > "$CPU_CGROUP/cpu.cfs_quota_us"
-echo $PERIOD > "$CPU_CGROUP/cpu.cfs_period_us"
+sudo echo $QUOTA | "$CPU_CGROUP/cpu.cfs_quota_us"
+sudo echo $PERIOD > "$CPU_CGROUP/cpu.cfs_period_us"
 
 # set memory limit in bytes
 MEM_BYTES=$((MEM_MB * 1024 * 1024))
