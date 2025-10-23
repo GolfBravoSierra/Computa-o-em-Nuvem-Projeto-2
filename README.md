@@ -11,13 +11,18 @@ Este projeto permite ao usuário:
 
 ## 🚀 Como usar
 
-   ```bash
-   vagrant up
-  
-   vagrant provision
+```
+vagrant up
+```
 
-   vagrant ssh
+```
+vagrant ssh
+```
 
-   cd /vagrant
+```
+cd /vagrant
+```
 
-   python3 app.py
+```
+python3 app.py
+```
