@@ -50,7 +50,7 @@
             color: white;
             border: none;
             border-radius: 5px;
-            display: none; /* Inicia oculto */
+            display: none; 
             margin-top: 20px;
             transition: background-color 0.3s;
         }
@@ -75,6 +75,31 @@
     </div>
     <div id="notification"></div>
     <button id="execute-button">Executar Programa</button>
+    <button id="view-db-button" style="margin-left:10px;">Ver Submissões</button>
+
+
+    <div id="output-container" style="margin-top:20px; display:none; text-align:left;">
+        <h3>Resultado da execução</h3>
+        <div><strong>Arquivo:</strong> <span id="out-filename"></span></div>
+        <div><strong>Tempo (s):</strong> <span id="out-time"></span></div>
+        <pre id="output-window" style="background:#f8f9fa; padding:12px; border-radius:6px; max-height:300px; overflow:auto;"></pre>
+    </div>
+
+
+    <div id="db-list" style="margin-top:20px; display:none; text-align:left;">
+        <h3>Submissões (últimas 100)</h3>
+        <table id="db-table" style="width:100%; border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align:left; border-bottom:1px solid #ddd; padding:6px">ID</th>
+                    <th style="text-align:left; border-bottom:1px solid #ddd; padding:6px">Arquivo</th>
+                    <th style="text-align:left; border-bottom:1px solid #ddd; padding:6px">Tempo (s)</th>
+                    <th style="text-align:left; border-bottom:1px solid #ddd; padding:6px">Data</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
@@ -93,7 +118,7 @@
         selectedFile = event.target.files[0];
         if (selectedFile) {
             notification.textContent = `Arquivo selecionado: ${selectedFile.name}`;
-            executeButton.style.display = 'block'; // Mostra o botão de executar
+            executeButton.style.display = 'block'; 
         }
     });
 
@@ -104,7 +129,6 @@
             const cpu = parseFloat(document.getElementById('cpu-input').value);
             const mem = parseInt(document.getElementById('mem-input').value, 10);
 
-            // validação simples no front-end
             if (isNaN(cpu) || cpu < 0.5 || cpu > 2) {
                 notification.textContent = 'Valor de CPU inválido. Informe entre 0.5 e 2.';
                 return;
@@ -126,13 +150,50 @@
             .then(response => response.json())
             .then(data => {
                 console.log(data);
-                notification.textContent = data.message;
+                notification.textContent = data.message || 'Resposta recebida';
+                const outContainer = document.getElementById('output-container');
+                const outWindow = document.getElementById('output-window');
+                const outFile = document.getElementById('out-filename');
+                const outTime = document.getElementById('out-time');
+                if (data.raw_output || data.execution_time_secs !== undefined) {
+                    outFile.textContent = data.filename || selectedFile.name;
+                    outTime.textContent = (data.execution_time_secs !== undefined) ? data.execution_time_secs : '';
+                    outWindow.textContent = data.raw_output || '';
+                    outContainer.style.display = 'block';
+                }
             })
             .catch(error => {
                 console.error('Erro:', error);
                 notification.textContent = 'Erro ao enviar o arquivo.';
             });
         }
+    });
+
+    // botão para ver submissões no banco
+    const viewDbBtn = document.getElementById('view-db-button');
+    viewDbBtn.addEventListener('click', () => {
+        const dbList = document.getElementById('db-list');
+        const tbody = document.querySelector('#db-table tbody');
+        // limpar
+        tbody.innerHTML = '';
+        fetch('/submissions')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.submissions) {
+                    notification.textContent = 'Nenhuma submissão encontrada.';
+                    return;
+                }
+                data.submissions.forEach(s => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td style="padding:6px; border-bottom:1px solid #eee">${s.id}</td><td style="padding:6px; border-bottom:1px solid #eee">${s.filename}</td><td style="padding:6px; border-bottom:1px solid #eee">${s.execution_time_secs}</td><td style="padding:6px; border-bottom:1px solid #eee">${s.created_at}</td>`;
+                    tbody.appendChild(tr);
+                });
+                dbList.style.display = 'block';
+            })
+            .catch(err => {
+                console.error('erro ao buscar submissões', err);
+                notification.textContent = 'Erro ao buscar submissões.';
+            });
     });
 </script>
 

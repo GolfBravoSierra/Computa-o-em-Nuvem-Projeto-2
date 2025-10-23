@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Uso: run_in_namespace.sh <path_to_c_file> <cpus> <mem_mb> [timeout_secs]
 set -euo pipefail
 
 CFILE="$1"
-CPUS="$2"   # e.g., 0.5 - 2
-MEM_MB="$3" # e.g., 10 - 4000
+CPUS="$2"   
+MEM_MB="$3" 
 TIMEOUT_SECS="${4:-10}"
 
 BASENAME=$(basename "$CFILE")
@@ -21,39 +21,77 @@ if [ ! -x ./prog ]; then
   exit 0
 fi
 
-# create network namespace (minimal) and run inside with limited resources using cgroups v1 (cpu/memory)
+# create network namespace and run inside with limited resources using cgroups v1 (cpu/memory)
 NS_NAME="ns_$$"
 CGROUP_DIR="/sys/fs/cgroup"
 
 # create namespace
 ip netns add "$NS_NAME" || true
 
-# create a cgroup per run (assumes cgroup v1 unified mount points exist)
+
+
+IS_ROOT=0
+if [ "$(id -u)" -eq 0 ]; then
+  IS_ROOT=1
+fi
+
+write_to() {
+  # write_to <file> <content>
+  local _file="$1"
+  shift
+  local _content="$*"
+  if [ "$IS_ROOT" -eq 1 ]; then
+    printf '%s' "$_content" > "$_file" || true
+  else
+    printf '%s' "$_content" | sudo tee "$_file" >/dev/null || true
+  fi
+}
+
+mkdir_p() {
+  local _dir="$1"
+  if [ "$IS_ROOT" -eq 1 ]; then
+    mkdir -p "$_dir" || true
+  else
+    sudo mkdir -p "$_dir" || true
+  fi
+}
+
+rmdir_safe() {
+  local _dir="$1"
+  if [ "$IS_ROOT" -eq 1 ]; then
+    rmdir "$_dir" || true
+  else
+    sudo rmdir "$_dir" || true
+  fi
+}
+
+# create a cgroup per run
 CGROUP_BASE="/sys/fs/cgroup"
 CPU_CGROUP="$CGROUP_BASE/cpu/ns_$$"
 MEM_CGROUP="$CGROUP_BASE/memory/ns_$$"
-mkdir -p "$CPU_CGROUP" "$MEM_CGROUP"
+mkdir_p "$CPU_CGROUP"
+mkdir_p "$MEM_CGROUP"
 
-# Convert CPUS (like 0.5) to cpu.cfs_quota_us relative to 100000 period
+# Convert CPUS to cpu.cfs_quota_us relative to 100000 period
 PERIOD=100000
 QUOTA=$(awk -v c="$CPUS" -v p="$PERIOD" 'BEGIN{printf "%d", c * p}')
-sudo echo $QUOTA | "$CPU_CGROUP/cpu.cfs_quota_us"
-sudo echo $PERIOD > "$CPU_CGROUP/cpu.cfs_period_us"
+write_to "$CPU_CGROUP/cpu.cfs_quota_us" "$QUOTA"
+write_to "$CPU_CGROUP/cpu.cfs_period_us" "$PERIOD"
 
 # set memory limit in bytes
 MEM_BYTES=$((MEM_MB * 1024 * 1024))
-echo $MEM_BYTES > "$MEM_CGROUP/memory.limit_in_bytes"
+write_to "$MEM_CGROUP/memory.limit_in_bytes" "$MEM_BYTES"
 
 # run the program and measure time
 START=$(date +%s.%N)
-# use nsenter to run inside the namespace; since program is CPU/memory limited by cgroup, just add PID to cgroup
+
 ./prog &
 PID=$!
 # add to cgroups
-echo $PID > "$CPU_CGROUP/tasks" || true
-echo $PID > "$MEM_CGROUP/tasks" || true
+write_to "$CPU_CGROUP/tasks" "$PID" || true
+write_to "$MEM_CGROUP/tasks" "$PID" || true
 
-# watchdog to kill process if it exceeds timeout
+# kill process if it exceeds timeout
 (
   sleep "$TIMEOUT_SECS"
   if kill -0 "$PID" 2>/dev/null; then
@@ -68,24 +106,16 @@ wait $PID || true
 RET=$?
 END=$(date +%s.%N)
 
-# kill watchdog if still running
+# kill  if still running
 kill -9 "$WATCH_PID" 2>/dev/null || true
 
 # calculate elapsed
 ELAPSED=$(awk -v s="$START" -v e="$END" 'BEGIN{printf "%.3f", e - s}')
 
 # cleanup
-# remove cgroup tasks then dirs
 sleep 0.1
-if [ -f "$CPU_CGROUP/tasks" ]; then
-  # try to clear
-  echo > "$CPU_CGROUP/tasks" || true
-fi
-if [ -f "$MEM_CGROUP/tasks" ]; then
-  echo > "$MEM_CGROUP/tasks" || true
-fi
-rmdir "$CPU_CGROUP" || true
-rmdir "$MEM_CGROUP" || true
+rmdir_safe "$CPU_CGROUP"
+rmdir_safe "$MEM_CGROUP"
 
 ip netns delete "$NS_NAME" || true
 

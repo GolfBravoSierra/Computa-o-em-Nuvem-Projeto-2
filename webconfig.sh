@@ -80,8 +80,13 @@ fi
 
 # allow vagrant to run the runner script without password (for namespace/cgroup ops)
 if [ -f /vagrant/scripts/run_in_namespace.sh ]; then
-  echo "vagrant ALL=(root) NOPASSWD: /vagrant/scripts/run_in_namespace.sh" > /etc/sudoers.d/c_runner || true
-  chmod 440 /etc/sudoers.d/c_runner || true
+	echo "vagrant ALL=(root) NOPASSWD: /vagrant/scripts/run_in_namespace.sh" > /etc/sudoers.d/c_runner || true
+	chmod 440 /etc/sudoers.d/c_runner || true
+	# ensure script is executable and has unix line endings
+	chmod +x /vagrant/scripts/run_in_namespace.sh || true
+	if command -v dos2unix >/dev/null 2>&1; then
+		dos2unix /vagrant/scripts/run_in_namespace.sh || true
+	fi
 fi
 
 echo "-->termino da configuracao da VM"
