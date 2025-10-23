@@ -41,7 +41,7 @@ sudo mysql -u flaskuser -p
 USE execucoes;
 ```
 ```
-SELECT id, nome_programa, tempo_execucao, LENGTH(codigo_c) AS tamanho FROM resultados;
+SELECT id, nome_programa, tempo_execucao, mem_limit_mb, cpu_limit_s, LENGTH(codigo_c) AS cod_len FROM resultados;
 ```
 
 Você verá algo como:
