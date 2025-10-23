@@ -11,6 +11,13 @@ Este projeto permite ao usuário:
 
 ## 🚀 Como usar
 
-1. Inicie a VM:
    ```bash
    vagrant up
+  
+   vagrant provision
+
+   vagrant ssh
+
+   cd /vagrant
+
+   python3 app.py
