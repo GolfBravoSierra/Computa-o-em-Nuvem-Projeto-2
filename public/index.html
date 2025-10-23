@@ -2,62 +2,122 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Gerenciador de Ambientes</title>
+    <title>Compilador C em Nuvem Local</title>
     <style>
-        body { font-family: sans-serif; margin: 2em; }
-        .container { max-width: 800px; margin: auto; }
-        textarea { width: 100%; min-height: 150px; font-family: monospace; }
-        button { padding: 10px 15px; cursor: pointer; }
-        #output { background-color: #f4f4f4; border: 1px solid #ccc; padding: 10px; white-space: pre-wrap; font-family: monospace; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 10px;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 14px;
+            border: 1px solid #ccc;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #e9ecef;
+            padding: 10px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
+    <h1>Execução de Código C em VM (Localhost:8080)</h1>
 
-    <div class="container">
-        <h1>Executar um Comando no Servidor</h1>
-        <p>
-            Digite um comando para ser executado dentro de um novo namespace. <br>
-            Exemplo: <code>ls -l /</code> ou <code>ps aux</code>
-        </p>
+    <form id="code-form">
+        <label for="prog-name">Nome do Programa:</label>
+        <input type="text" id="prog-name" name="prog_name" placeholder="ex: meu_teste" required>
 
-        <form id="commandForm">
-            <textarea id="command" name="command" placeholder="Digite seu comando aqui..."></textarea>
-            <br><br>
-            <button type="submit">Executar</button>
-        </form>
+        <label for="code-input">Insira seu Código C:</label>
+        <textarea id="code-input" name="c_code">#include <stdio.h>
 
-        <h2>Saída:</h2>
-        <pre id="output">A saída do comando aparecerá aqui...</pre>
-    </div>
+int main() {
+    printf("Olá, Projeto Cloud!\\n");
+    return 0;
+}</textarea>
+
+        <button type="submit">Compilar e Executar</button>
+    </form>
+
+    <h2>Resultado da Execução:</h2>
+    <div id="status-output"></div>
+    <pre id="stdout-output"></pre>
+    <pre id="stderr-output" class="error"></pre>
+    <div id="time-output"></div>
 
     <script>
-        document.getElementById('commandForm').addEventListener('submit', function(event) {
+        document.getElementById('code-form').addEventListener('submit', function(event) {
             event.preventDefault();
 
-            const command = document.getElementById('command').value;
-            const outputElement = document.getElementById('output');
-            
-            outputElement.textContent = 'Executando...';
+            const codeInput = document.getElementById('code-input').value;
+            const progName = document.getElementById('prog-name').value;
+            const statusOutput = document.getElementById('status-output');
+            const stdoutOutput = document.getElementById('stdout-output');
+            const stderrOutput = document.getElementById('stderr-output');
+            const timeOutput = document.getElementById('time-output');
 
-            // --- ALTERE A LINHA ABAIXO ---
-            // O caminho agora é absoluto a partir da raiz do site
-            fetch('/api.php', {
-            // -----------------------------
+            // Limpa saídas antigas
+            statusOutput.innerHTML = 'Processando...';
+            stdoutOutput.textContent = '';
+            stderrOutput.textContent = '';
+            timeOutput.textContent = '';
+
+            // Prepara o corpo da requisição
+            const formData = new FormData();
+            formData.append('c_code', codeInput);
+            formData.append('prog_name', progName);
+
+            // Envia ao backend Flask
+            fetch('/execute', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'command=' + encodeURIComponent(command)
+                body: formData
             })
-            .then(response => response.text())
+            .then(response => response.json())
             .then(data => {
-                outputElement.textContent = data;
+                statusOutput.innerHTML = `Status: <span class="${data.status === 'Success' ? 'success' : 'error'}">${data.status}</span>`;
+                if (data.stdout) {
+                    stdoutOutput.textContent = 'STDOUT:\n' + data.stdout;
+                }
+                if (data.stderr) {
+                    stderrOutput.textContent = 'STDERR:\n' + data.stderr;
+                }
+                if (data.time_elapsed_wall) {
+                    timeOutput.textContent = `Tempo de Execução: ${data.time_elapsed_wall}`;
+                }
             })
             .catch(error => {
-                outputElement.textContent = 'Erro ao executar o comando: ' + error;
+                statusOutput.innerHTML = `<span class="error">Erro de Comunicação: ${error.message}</span>`;
+                console.error('Fetch error:', error);
             });
         });
     </script>
-
 </body>
 </html>
